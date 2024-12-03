@@ -26,7 +26,7 @@ namespace Tournament.Data.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "Game",
+                name: "Games",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
@@ -38,17 +38,17 @@ namespace Tournament.Data.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_Game", x => x.Id);
+                    table.PrimaryKey("PK_Games", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_Game_TournamentDetails_TournamentDetailsId",
+                        name: "FK_Games_TournamentDetails_TournamentDetailsId",
                         column: x => x.TournamentDetailsId,
                         principalTable: "TournamentDetails",
                         principalColumn: "Id");
                 });
 
             migrationBuilder.CreateIndex(
-                name: "IX_Game_TournamentDetailsId",
-                table: "Game",
+                name: "IX_Games_TournamentDetailsId",
+                table: "Games",
                 column: "TournamentDetailsId");
         }
 
@@ -56,7 +56,7 @@ namespace Tournament.Data.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
-                name: "Game");
+                name: "Games");
 
             migrationBuilder.DropTable(
                 name: "TournamentDetails");
