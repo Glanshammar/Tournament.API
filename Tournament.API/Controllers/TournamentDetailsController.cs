@@ -54,7 +54,7 @@ namespace Tournament.API.Controllers
         [HttpPut("{id}")]
         public async Task<IActionResult> PutTournamentDetails(int id, TournamentDto tournamentDto)
         {
-            if (id != tournamentDto.Id)
+            if (id != tournamentDto.Id || !ModelState.IsValid)
             {
                 return BadRequest();
             }
@@ -80,7 +80,7 @@ namespace Tournament.API.Controllers
                 }
                 else
                 {
-                    throw;
+                    return StatusCode(500, "An error occurred while updating the tournament.");
                 }
             }
 
@@ -91,12 +91,25 @@ namespace Tournament.API.Controllers
         [HttpPost]
         public async Task<ActionResult<TournamentDto>> PostTournamentDetails(TournamentDto tournamentDto)
         {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
             var tournamentDetails = _mapper.Map<TournamentDetails>(tournamentDto);
-            _uow.TournamentRepository.Add(tournamentDetails);
-            await _uow.CompleteAsync();
+
+            try
+            {
+                _uow.TournamentRepository.Add(tournamentDetails);
+                await _uow.CompleteAsync();
+            }
+            catch
+            {
+                return StatusCode(500, "An error occurred while saving the tournament.");
+            }
 
             var createdTournamentDto = _mapper.Map<TournamentDto>(tournamentDetails);
-            return CreatedAtAction("GetTournamentDetails", new { id = createdTournamentDto.Id }, createdTournamentDto);
+            return CreatedAtAction(nameof(GetTournamentDetails), new { id = createdTournamentDto.Id }, createdTournamentDto);
         }
 
         // DELETE: api/TournamentDetails/5
@@ -109,8 +122,15 @@ namespace Tournament.API.Controllers
                 return NotFound();
             }
 
-            _uow.TournamentRepository.Remove(tournamentDetails);
-            await _uow.CompleteAsync();
+            try
+            {
+                _uow.TournamentRepository.Remove(tournamentDetails);
+                await _uow.CompleteAsync();
+            }
+            catch
+            {
+                return StatusCode(500, "An error occurred while deleting the tournament.");
+            }
 
             return NoContent();
         }

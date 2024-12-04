@@ -54,7 +54,7 @@ namespace Tournament.API.Controllers
         [HttpPut("{id}")]
         public async Task<IActionResult> PutGame(int id, GameDto gameDto)
         {
-            if (id != gameDto.Id)
+            if (id != gameDto.Id || !ModelState.IsValid)
             {
                 return BadRequest();
             }
@@ -80,7 +80,7 @@ namespace Tournament.API.Controllers
                 }
                 else
                 {
-                    throw;
+                    return StatusCode(500, "An error occurred while updating the game.");
                 }
             }
 
@@ -91,12 +91,25 @@ namespace Tournament.API.Controllers
         [HttpPost]
         public async Task<ActionResult<GameDto>> PostGame(GameDto gameDto)
         {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
             var game = _mapper.Map<Game>(gameDto);
-            _uow.GameRepository.Add(game);
-            await _uow.CompleteAsync();
+
+            try
+            {
+                _uow.GameRepository.Add(game);
+                await _uow.CompleteAsync();
+            }
+            catch
+            {
+                return StatusCode(500, "An error occurred while saving the game.");
+            }
 
             var createdGameDto = _mapper.Map<GameDto>(game);
-            return CreatedAtAction("GetGame", new { id = createdGameDto.Id }, createdGameDto);
+            return CreatedAtAction(nameof(GetGame), new { id = createdGameDto.Id }, createdGameDto);
         }
 
         // DELETE: api/Games/5
@@ -109,8 +122,15 @@ namespace Tournament.API.Controllers
                 return NotFound();
             }
 
-            _uow.GameRepository.Remove(game);
-            await _uow.CompleteAsync();
+            try
+            {
+                _uow.GameRepository.Remove(game);
+                await _uow.CompleteAsync();
+            }
+            catch
+            {
+                return StatusCode(500, "An error occurred while deleting the game.");
+            }
 
             return NoContent();
         }
