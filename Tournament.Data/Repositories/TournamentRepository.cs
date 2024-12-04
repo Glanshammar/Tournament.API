@@ -48,5 +48,17 @@ namespace Tournament.Data.Repositories
         {
             _context.TournamentDetails.Remove(tournament);
         }
+
+        public async Task<IEnumerable<TournamentDetails>> GetAllWithMatchesAsync()
+        {
+            return await _context.TournamentDetails.Include(t => t.Games).ToListAsync();
+        }
+
+        public async Task<TournamentDetails> GetWithMatchesAsync(int id)
+        {
+            return await _context.TournamentDetails
+                .Include(t => t.Games)
+                .FirstOrDefaultAsync(t => t.Id == id);
+        }
     }
 }

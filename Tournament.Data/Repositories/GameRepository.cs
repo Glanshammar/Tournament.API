@@ -48,5 +48,10 @@ namespace Tournament.Data.Repositories
         {
             _context.Games.Remove(game);
         }
+
+        public async Task<IEnumerable<Game>> GetByTitleAsync(string title)
+        {
+            return await _context.Games.Where(g => g.Title == title).ToListAsync();
+        }
     }
 }
