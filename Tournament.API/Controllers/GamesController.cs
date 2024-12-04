@@ -10,6 +10,7 @@ using Tournament.Core.Entities;
 using Tournament.Core.Repositories;
 using AutoMapper;
 using Tournament.Core.Dto;
+using Microsoft.AspNetCore.JsonPatch;
 
 namespace Tournament.API.Controllers
 {
@@ -28,9 +29,23 @@ namespace Tournament.API.Controllers
 
         // GET: api/Games
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<GameDto>>> GetGame()
+        public async Task<ActionResult<IEnumerable<GameDto>>> GetGame([FromQuery] string title = null)
         {
-            var games = await _uow.GameRepository.GetAllAsync();
+            IEnumerable<Game> games;
+            if (!string.IsNullOrEmpty(title))
+            {
+                games = await _uow.GameRepository.GetByTitleAsync(title);
+            }
+            else
+            {
+                games = await _uow.GameRepository.GetAllAsync();
+            }
+
+            if (!games.Any())
+            {
+                return NotFound();
+            }
+
             var gameDtos = _mapper.Map<IEnumerable<GameDto>>(games);
             return Ok(gameDtos);
         }
@@ -138,6 +153,44 @@ namespace Tournament.API.Controllers
         private async Task<bool> GameExists(int id)
         {
             return await _uow.GameRepository.AnyAsync(id);
+        }
+
+        [HttpPatch("{gameId}")]
+        public async Task<ActionResult<GameDto>> PatchGame(int gameId, JsonPatchDocument<GameDto> patchDocument)
+        {
+            if (patchDocument == null)
+            {
+                return BadRequest();
+            }
+
+            var game = await _uow.GameRepository.GetAsync(gameId);
+            if (game == null)
+            {
+                return NotFound();
+            }
+
+            var gameDto = _mapper.Map<GameDto>(game);
+
+            patchDocument.ApplyTo(gameDto, ModelState);
+
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            _mapper.Map(gameDto, game);
+
+            try
+            {
+                _uow.GameRepository.Update(game);
+                await _uow.CompleteAsync();
+            }
+            catch
+            {
+                return StatusCode(500, "An error occurred while updating the game.");
+            }
+
+            return Ok(_mapper.Map<GameDto>(game));
         }
     }
 }
