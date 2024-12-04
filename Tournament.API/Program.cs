@@ -24,6 +24,7 @@ namespace Tournament.API
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
             builder.Services.AddScoped<IUoW, UoW>();
+            builder.Services.AddAutoMapper(typeof(TournamentMappings));
 
             var app = builder.Build();
             await app.SeedDataAsync();
