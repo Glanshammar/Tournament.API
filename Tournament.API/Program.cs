@@ -5,9 +5,9 @@ using Tournament.Core.Repositories;
 using Tournament.Data.Data;
 using Tournament.Data.Repositories;
 using Service.Contracts;
-using Tournament.Services;
 using Service.Contracts.Interfaces;
 using Tournament.Presentation.Controllers;
+using Tournament.Services.Services;
 
 namespace Tournament.API
 {
@@ -36,6 +36,7 @@ namespace Tournament.API
             builder.Services.AddScoped<IUoW, UoW>();
             builder.Services.AddAutoMapper(typeof(TournamentMappings));
             builder.Services.AddAutoMapper(typeof(MappingProfile));
+            builder.Services.AddProblemDetails();
 
             // Register ServiceManager
             builder.Services.AddScoped<IServiceManager, ServiceManager>();
@@ -53,6 +54,8 @@ namespace Tournament.API
             app.UseHttpsRedirection();
             app.UseAuthorization();
             app.MapControllers();
+            app.UseExceptionHandler();
+            app.UseStatusCodePages();
 
             app.Run();
         }
