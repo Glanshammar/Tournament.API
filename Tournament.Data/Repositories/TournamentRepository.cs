@@ -21,7 +21,16 @@ namespace Tournament.Data.Repositories
 
         public async Task<IEnumerable<TournamentDetails>> GetAllAsync()
         {
-            return await _context.TournamentDetails.ToListAsync();
+            // Retrieve all tournaments and include related games if necessary
+            return await _context.TournamentDetails
+                .Select(t => new TournamentDetails
+                {
+                    Id = t.Id,
+                    Title = t.Title,
+                    StartDate = t.StartDate,
+                    Games = t.Games
+                })
+                .ToListAsync();
         }
 
         public async Task<TournamentDetails> GetAsync(int id)
