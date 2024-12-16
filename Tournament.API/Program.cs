@@ -8,6 +8,8 @@ using Service.Contracts;
 using Service.Contracts.Interfaces;
 using Tournament.Presentation.Controllers;
 using Tournament.Services.Services;
+using Tournament.Services.Exceptions;
+using Microsoft.AspNetCore.Diagnostics;
 
 namespace Tournament.API
 {
@@ -36,10 +38,19 @@ namespace Tournament.API
             builder.Services.AddScoped<IUoW, UoW>();
             builder.Services.AddAutoMapper(typeof(TournamentMappings));
             builder.Services.AddAutoMapper(typeof(MappingProfile));
-            builder.Services.AddProblemDetails();
 
-            // Register ServiceManager
+            builder.Services.AddProblemDetails(options =>
+            {
+                options.CustomizeProblemDetails = context =>
+                {
+                    context.ProblemDetails.Instance = $"{context.HttpContext.Request.Method} {context.HttpContext.Request.Path}";
+                    context.ProblemDetails.Extensions.TryAdd("requestId", context.HttpContext.TraceIdentifier);
+                };
+            });
+
+            // Register managers
             builder.Services.AddScoped<IServiceManager, ServiceManager>();
+            builder.Services.AddTransient<ExceptionHandler>();
 
             var app = builder.Build();
             await app.SeedDataAsync();
@@ -50,6 +61,18 @@ namespace Tournament.API
                 app.UseSwagger();
                 app.UseSwaggerUI();
             }
+
+            app.UseExceptionHandler(appBuilder =>
+            {
+                appBuilder.Run(async context =>
+                {
+                    var exceptionHandlerPathFeature = context.Features.Get<IExceptionHandlerPathFeature>();
+                    var exception = exceptionHandlerPathFeature?.Error;
+
+                    var handler = context.RequestServices.GetRequiredService<ExceptionHandler>();
+                    await handler.TryHandleAsync(context, exception, CancellationToken.None);
+                });
+            });
 
             app.UseHttpsRedirection();
             app.UseAuthorization();
