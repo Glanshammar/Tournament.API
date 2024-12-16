@@ -4,6 +4,10 @@ using Tournament.API.Extensions;
 using Tournament.Core.Repositories;
 using Tournament.Data.Data;
 using Tournament.Data.Repositories;
+using Service.Contracts;
+using Tournament.Services;
+using Service.Contracts.Interfaces;
+using Tournament.Presentation.Controllers;
 
 namespace Tournament.API
 {
@@ -16,15 +20,25 @@ namespace Tournament.API
                 options.UseSqlServer(builder.Configuration.GetConnectionString("TournamentAPIContext") ?? throw new InvalidOperationException("Connection string 'TournamentAPIContext' not found.")));
 
             // Add services to the container.
-            builder.Services.AddControllers(opt => opt.ReturnHttpNotAcceptable = true)
-                .AddNewtonsoftJson()
-                .AddXmlDataContractSerializerFormatters();
+            builder.Services.AddControllers(opt =>
+            {
+                opt.ReturnHttpNotAcceptable = true;
+            })
+            .AddNewtonsoftJson()
+            .AddXmlDataContractSerializerFormatters()
+            .AddApplicationPart(typeof(GamesController).Assembly)
+            .AddApplicationPart(typeof(TournamentDetailsController).Assembly);
+
 
             // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
             builder.Services.AddScoped<IUoW, UoW>();
             builder.Services.AddAutoMapper(typeof(TournamentMappings));
+            builder.Services.AddAutoMapper(typeof(MappingProfile));
+
+            // Register ServiceManager
+            builder.Services.AddScoped<IServiceManager, ServiceManager>();
 
             var app = builder.Build();
             await app.SeedDataAsync();
@@ -37,10 +51,7 @@ namespace Tournament.API
             }
 
             app.UseHttpsRedirection();
-
             app.UseAuthorization();
-
-
             app.MapControllers();
 
             app.Run();

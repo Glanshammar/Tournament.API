@@ -14,12 +14,13 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Design" Version="8.0.7" />
-    <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="7.2.0" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Tournament.Core\Tournament.Core.csproj" />
     <ProjectReference Include="..\Tournament.Data\Tournament.Data.csproj" />
+    <ProjectReference Include="..\Tournament.Presentation\Tournament.Presentation.csproj" />
+    <ProjectReference Include="..\Tournament.Services\Tournament.Services.csproj" />
   </ItemGroup>
 
 </Project>
