@@ -12,7 +12,7 @@ using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Tournament.Core.Utilities;
 
-namespace Tournament.Services
+namespace Tournament.Services.Services
 {
     public class GameService : IGameService
     {

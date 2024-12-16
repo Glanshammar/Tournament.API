@@ -7,7 +7,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Tournament.Core.Repositories;
 
-namespace Tournament.Services
+namespace Tournament.Services.Services
 {
     public class ServiceManager : IServiceManager
     {
