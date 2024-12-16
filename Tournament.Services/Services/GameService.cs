@@ -11,6 +11,7 @@ using Tournament.Core.Repositories;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Tournament.Core.Utilities;
+using Tournament.Services.Exceptions;
 
 namespace Tournament.Services.Services
 {
@@ -49,7 +50,7 @@ namespace Tournament.Services.Services
         {
             var game = await _uow.GameRepository.GetAsync(id);
             if (game == null)
-                throw new KeyNotFoundException("Game not found");
+                throw new GameNotFoundException(id);
             return _mapper.Map<GameDto>(game);
         }
 
@@ -75,6 +76,17 @@ namespace Tournament.Services.Services
 
         public async Task<GameDto> CreateGameAsync(GameDto gameDto)
         {
+            var validationErrors = new List<string>();
+
+            if (string.IsNullOrWhiteSpace(gameDto.Title))
+                validationErrors.Add("Game title is required.");
+
+            if (gameDto.StartDate == default)
+                validationErrors.Add("Release date is required.");
+
+            if (validationErrors.Any())
+                throw new InvalidGameException(validationErrors);
+
             var game = _mapper.Map<Game>(gameDto);
             _uow.GameRepository.Add(game);
             await _uow.CompleteAsync();
@@ -85,7 +97,7 @@ namespace Tournament.Services.Services
         {
             var game = await _uow.GameRepository.GetAsync(id);
             if (game == null)
-                throw new KeyNotFoundException("Game not found");
+                throw new GameNotFoundException(id);
 
             _mapper.Map(gameDto, game);
             _uow.GameRepository.Update(game);
@@ -96,7 +108,7 @@ namespace Tournament.Services.Services
         {
             var game = await _uow.GameRepository.GetAsync(id);
             if (game == null)
-                throw new KeyNotFoundException("Game not found");
+                throw new GameNotFoundException(id);
 
             _uow.GameRepository.Remove(game);
             await _uow.CompleteAsync();
@@ -108,13 +120,9 @@ namespace Tournament.Services.Services
             IEnumerable<Game> games;
 
             if (!string.IsNullOrEmpty(title))
-            {
                 games = await _uow.GameRepository.GetByTitleAsync(title);
-            }
             else
-            {
                 games = await _uow.GameRepository.GetAllAsync();
-            }
 
             var totalItems = games.Count();
             var pagedGames = games
@@ -135,21 +143,17 @@ namespace Tournament.Services.Services
         public async Task<GameDto> PatchGameAsync(int gameId, JsonPatchDocument<GameDto> patchDocument, ModelStateDictionary modelState)
         {
             if (patchDocument == null)
-            {
                 throw new ArgumentNullException(nameof(patchDocument), "Patch document cannot be null.");
-            }
 
             var game = await _uow.GameRepository.GetAsync(gameId);
             if (game == null)
-                throw new KeyNotFoundException("Game not found");
+                throw new GameNotFoundException(gameId);
 
             var gameDto = _mapper.Map<GameDto>(game);
             patchDocument.ApplyTo(gameDto);
 
             if (!modelState.IsValid)
-            {
                 throw new ArgumentException("Invalid model state");
-            }
 
             _mapper.Map(gameDto, game);
             await _uow.CompleteAsync();

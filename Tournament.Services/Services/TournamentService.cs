@@ -12,6 +12,7 @@ using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
 using Tournament.Core.Utilities;
+using Tournament.Services.Exceptions;
 
 namespace Tournament.Services.Services
 {
@@ -46,9 +47,6 @@ namespace Tournament.Services.Services
             );
         }
 
-
-
-
         public async Task<TournamentDto> GetTournamentByIdAsync(int id)
         {
             var tournament = await _uow.TournamentRepository.GetAsync(id);
@@ -67,7 +65,7 @@ namespace Tournament.Services.Services
         {
             var tournament = await _uow.TournamentRepository.GetAsync(id);
             if (tournament == null)
-                throw new KeyNotFoundException("Tournament not found");
+                throw new TournamentNotFoundException(id);
 
             _mapper.Map(tournamentDto, tournament);
             _uow.TournamentRepository.Update(tournament);
@@ -78,7 +76,7 @@ namespace Tournament.Services.Services
         {
             var tournament = await _uow.TournamentRepository.GetAsync(id);
             if (tournament == null)
-                throw new KeyNotFoundException("Tournament not found");
+                throw new TournamentNotFoundException(id);
 
             _uow.TournamentRepository.Remove(tournament);
             await _uow.CompleteAsync();
@@ -88,14 +86,14 @@ namespace Tournament.Services.Services
         {
             var tournament = await _uow.TournamentRepository.GetAsync(id);
             if (tournament == null)
-                throw new KeyNotFoundException("Tournament not found");
+                throw new TournamentNotFoundException(id);
 
             var tournamentDto = _mapper.Map<TournamentDto>(tournament);
             patchDocument.ApplyTo(tournamentDto, modelState);
 
             if (!modelState.IsValid)
             {
-                throw new ArgumentException("Invalid model state");
+                throw new InvalidTournamentException(new List<string> { "Invalid model state." });
             }
 
             _mapper.Map(tournamentDto, tournament);
