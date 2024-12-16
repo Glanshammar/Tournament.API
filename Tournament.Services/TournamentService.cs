@@ -8,6 +8,10 @@ using Tournament.Core.Dto;
 using Tournament.Core.Entities;
 using Tournament.Core.Repositories;
 using AutoMapper;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
+using Microsoft.AspNetCore.JsonPatch;
+using Microsoft.AspNetCore.Mvc;
+using Tournament.Core.Utilities;
 
 namespace Tournament.Services
 {
@@ -22,13 +26,28 @@ namespace Tournament.Services
             _mapper = mapper;
         }
 
-        public async Task<IEnumerable<TournamentDto>> GetAllTournamentsAsync(int pageNumber, int pageSize)
+        public async Task<PagedResponse<TournamentDto>> GetAllTournamentsAsync(int pageNumber, int pageSize)
         {
+            if (pageSize > 100) pageSize = 100;
             var tournaments = await _uow.TournamentRepository.GetAllAsync();
-            return _mapper.Map<IEnumerable<TournamentDto>>(tournaments)
+            var totalItems = tournaments.Count();
+            var pagedTournaments = tournaments
                 .Skip((pageNumber - 1) * pageSize)
-                .Take(Math.Min(pageSize, 100));
+                .Take(pageSize);
+
+            var tournamentDtos = _mapper.Map<IEnumerable<TournamentDto>>(pagedTournaments);
+
+            return new PagedResponse<TournamentDto>(
+                tournamentDtos,
+                (int)Math.Ceiling(totalItems / (double)pageSize),
+                pageSize,
+                pageNumber,
+                totalItems
+            );
         }
+
+
+
 
         public async Task<TournamentDto> GetTournamentByIdAsync(int id)
         {
@@ -63,6 +82,27 @@ namespace Tournament.Services
 
             _uow.TournamentRepository.Remove(tournament);
             await _uow.CompleteAsync();
+        }
+
+        public async Task<TournamentDto> PatchTournamentAsync(int id, JsonPatchDocument<TournamentDto> patchDocument, ModelStateDictionary modelState)
+        {
+            var tournament = await _uow.TournamentRepository.GetAsync(id);
+            if (tournament == null)
+                throw new KeyNotFoundException("Tournament not found");
+
+            var tournamentDto = _mapper.Map<TournamentDto>(tournament);
+            patchDocument.ApplyTo(tournamentDto, modelState);
+
+            if (!modelState.IsValid)
+            {
+                throw new ArgumentException("Invalid model state");
+            }
+
+            _mapper.Map(tournamentDto, tournament);
+
+            await _uow.CompleteAsync();
+
+            return _mapper.Map<TournamentDto>(tournament);
         }
     }
 }

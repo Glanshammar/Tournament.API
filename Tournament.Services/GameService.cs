@@ -8,6 +8,9 @@ using System.Threading.Tasks;
 using Tournament.Core.Dto;
 using Tournament.Core.Entities;
 using Tournament.Core.Repositories;
+using Microsoft.AspNetCore.JsonPatch;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
+using Tournament.Core.Utilities;
 
 namespace Tournament.Services
 {
@@ -22,12 +25,24 @@ namespace Tournament.Services
             _mapper = mapper;
         }
 
-        public async Task<IEnumerable<GameDto>> GetAllGamesAsync(int pageNumber, int pageSize)
+        public async Task<PagedResponse<GameDto>> GetAllGamesAsync(int pageNumber, int pageSize)
         {
+            if (pageSize > 100) pageSize = 100;
             var games = await _uow.GameRepository.GetAllAsync();
-            return _mapper.Map<IEnumerable<GameDto>>(games)
+            var totalItems = games.Count();
+            var pagedGames = games
                 .Skip((pageNumber - 1) * pageSize)
-                .Take(Math.Min(pageSize, 100));
+                .Take(pageSize);
+
+            var gameDtos = _mapper.Map<IEnumerable<GameDto>>(pagedGames);
+
+            return new PagedResponse<GameDto>(
+                gameDtos,
+                (int)Math.Ceiling(totalItems / (double)pageSize),
+                pageSize,
+                pageNumber,
+                totalItems
+            );
         }
 
         public async Task<GameDto> GetGameByIdAsync(int id)
@@ -38,12 +53,24 @@ namespace Tournament.Services
             return _mapper.Map<GameDto>(game);
         }
 
-        public async Task<IEnumerable<GameDto>> GetGamesByTitleAsync(string title, int pageNumber, int pageSize)
+        public async Task<PagedResponse<GameDto>> GetGamesByTitleAsync(string title, int pageNumber, int pageSize)
         {
+            if (pageSize > 100) pageSize = 100;
             var games = await _uow.GameRepository.GetByTitleAsync(title);
-            return _mapper.Map<IEnumerable<GameDto>>(games)
+            var totalItems = games.Count();
+            var pagedGames = games
                 .Skip((pageNumber - 1) * pageSize)
-                .Take(Math.Min(pageSize, 100));
+                .Take(pageSize);
+
+            var gameDtos = _mapper.Map<IEnumerable<GameDto>>(pagedGames);
+
+            return new PagedResponse<GameDto>(
+                gameDtos,
+                (int)Math.Ceiling(totalItems / (double)pageSize),
+                pageSize,
+                pageNumber,
+                totalItems
+            );
         }
 
         public async Task<GameDto> CreateGameAsync(GameDto gameDto)
@@ -74,6 +101,60 @@ namespace Tournament.Services
             _uow.GameRepository.Remove(game);
             await _uow.CompleteAsync();
         }
-    }
 
+        public async Task<PagedResponse<GameDto>> GetGamesAsync(string title, int pageNumber, int pageSize)
+        {
+            if (pageSize > 100) pageSize = 100;
+            IEnumerable<Game> games;
+
+            if (!string.IsNullOrEmpty(title))
+            {
+                games = await _uow.GameRepository.GetByTitleAsync(title);
+            }
+            else
+            {
+                games = await _uow.GameRepository.GetAllAsync();
+            }
+
+            var totalItems = games.Count();
+            var pagedGames = games
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize);
+
+            var gameDtos = _mapper.Map<IEnumerable<GameDto>>(pagedGames);
+
+            return new PagedResponse<GameDto>(
+                gameDtos,
+                (int)Math.Ceiling(totalItems / (double)pageSize),
+                pageSize,
+                pageNumber,
+                totalItems
+            );
+        }
+
+        public async Task<GameDto> PatchGameAsync(int gameId, JsonPatchDocument<GameDto> patchDocument, ModelStateDictionary modelState)
+        {
+            if (patchDocument == null)
+            {
+                throw new ArgumentNullException(nameof(patchDocument), "Patch document cannot be null.");
+            }
+
+            var game = await _uow.GameRepository.GetAsync(gameId);
+            if (game == null)
+                throw new KeyNotFoundException("Game not found");
+
+            var gameDto = _mapper.Map<GameDto>(game);
+            patchDocument.ApplyTo(gameDto);
+
+            if (!modelState.IsValid)
+            {
+                throw new ArgumentException("Invalid model state");
+            }
+
+            _mapper.Map(gameDto, game);
+            await _uow.CompleteAsync();
+
+            return _mapper.Map<GameDto>(game);
+        }
+    }
 }
