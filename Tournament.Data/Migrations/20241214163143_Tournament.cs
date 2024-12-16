@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace Tournament.Data.Migrations
 {
     /// <inheritdoc />
-    public partial class Init : Migration
+    public partial class Tournament : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
